@@ -7,6 +7,55 @@
 #include<string.h>
 #include<errno.h>
 
+
+void ProcessRequest(int client_sock,struct sockaddr_in* client_socket){
+		char buf_ip[24];
+		//初始化
+		buf_ip[0] = 0;
+		while(1){
+			char buf[1024];
+			buf[0] =0;
+			ssize_t s = read(client_sock,buf,sizeof(buf)-1);          
+			if(s>0){
+				buf[s] = 0;
+				printf("[%s:%d]say#%s\n",buf_ip,client_socket->sin_port,buf);
+				buf[0] = 0;
+				printf("server:#%s\n",buf);
+				fflush(stdout);
+				s = read(0,buf,sizeof(buf)-1);
+				if(s>0){
+					buf[s] = 0;
+				}
+				if(strncmp(buf,"quit",4)==0){
+					printf("quit!\n");
+					break;
+				}
+				write(client_sock,buf,sizeof(buf));
+				printf("please wait!\n");
+			}
+			else if(s==0){
+				printf("client[%s:%d]quit\n",buf_ip,client_socket->sin_port);
+				break;
+			}else{
+				continue;
+			}
+		}
+	}
+void CreateWorker(int client_sock,struct sockaddr_in* client_socket){
+	pid_t pid;
+	pid = fork();
+	if(fork()<0){
+		perror("fork");
+		return;
+	}else if(pid== 0){
+		if(fork()==0){
+			ProcessRequest(client_sock,client_socket);
+		}
+	}else{
+		close(client_sock);
+		waitpid(pid,NULL,0);
+	}
+}
 //主函数
 int main(int argc,char* argv[]){
 	if(argc != 3){
@@ -43,44 +92,13 @@ int main(int argc,char* argv[]){
 		int client_sock = accept(sock,(struct sockaddr*)&client_socket,&len);//此处的len位输入输出参数
 		if(client_sock<0){
 			printf("accept error!");
-			close(sock);
-			return 4;
+			continue;
 		}
 		char buf_ip[24];
-		//初始化
-		buf_ip[0] = 0;
 		inet_ntop(AF_INET,&client_socket.sin_addr,buf_ip,sizeof(buf_ip));
 		printf("get connect!ip is %s,port is %d!\n",buf_ip,ntohs(client_socket.sin_port));
-		while(1){
-			char buf[1024];
-			buf[0] =0;
-			ssize_t s = read(client_sock,buf,sizeof(buf)-1);          //未读取到数字
-			if(s>0){
-				buf[s] = 0;
-				printf("[%s:%d]say#%s\n",buf_ip,client_socket.sin_port,buf);
-				buf[0] = 0;
-				printf("server:#%s\n",buf);
-				fflush(stdout);
-				s = read(0,buf,sizeof(buf)-1);
-				if(s>0){
-					buf[s] = 0;
-				}
-				if(strncmp(buf,"quit",4)==0){
-					printf("quit!\n");
-					break;
-				}
-				write(client_sock,buf,sizeof(buf));
-				printf("please wait!\n");
-			}
-			else if(s==0){
-				printf("client[%s:%d]quit\n",buf_ip,client_socket.sin_port);
-				break;
-			}else{
-				printf("read error\n");
-				break;
-			}
-		}
+		CreateWorker(client_sock,&client_socket);
 	}
-	close(sock);
 	return 0;
 }
+

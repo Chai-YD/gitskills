@@ -1,0 +1,28 @@
+//顺序查找函数
+int SeqSearch(SeqList R,int n,KeyType K){
+    int i= 0;
+    while(i<n && R[i].ley != k){
+        i++;
+    }
+    if(i>=n){
+        return -1;
+    }else{
+        return i;
+    }
+}
+
+
+//折半查找函数,假设该表为递增有序的
+int Binsearck(SeqList R,int n,KeyType K){
+    int left = 0;
+    int right = n-1;
+    int mid = left + right/2;
+    if(R[mid ].key == K){
+        return mid;
+    }else if(R[mid ].key > K){
+        right = mid-1;
+    }else{
+        left = mid+1;
+    }
+    return -1;
+}

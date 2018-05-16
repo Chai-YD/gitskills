@@ -62,6 +62,37 @@ void HeapInsert(Heap* heap, HeapType value){
     ++heap->size;
     return;
 }
+//取堆顶元素
+int HeapRoot(Heap* heap, HeapType* value){
+    //1.判断是否为非法输入
+    if(heap == NULL){
+        //非法输入
+        return 0;
+    }
+    //1.判断堆是否为空，空堆返回0，否则返回1
+    if(heap->size == 0){
+        //空堆 
+        return 0;
+    }else{
+        //非空
+        *value = heap->data[0];
+        return 1;
+    }
+}
+//取堆顶元素的检测函数
+void textHeapRoot(){
+    Heap heap ;
+    HeapInit(&heap,Greater);
+    HeapInsert(&heap,1);
+    HeapInsert(&heap,2);
+    HeapInsert(&heap,3);
+    HeapInsert(&heap,4);
+    HeapType value;
+    int ret = HeapRoot(&heap,&value);
+    printf("\n*******取堆顶元素***********\n");
+    printf("ret except:1  actual:%d\n",ret);
+    printf("value except:4   actual:%d\n",value);
+}
 //堆插入的检测函数
 void textHeapInsert(){
     Heap heap ;
@@ -86,5 +117,6 @@ void textHeapInit(){
 int main(){
     textHeapInit();//堆初始化的检测函数
     textHeapInsert();//堆插入一个元素
+    textHeapRoot();//取堆顶元素的检测函数
     return 0;
 }

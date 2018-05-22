@@ -51,7 +51,7 @@ int main(){
     count = movingCount(9,9,9);
     printf("count expect:48 actual:%d\n",count);
     //全部不在范围内
-    count = movingCount(18,0,0);
+    count = movingCount(-5,18,18);
     printf("count expect:0 actual:%d\n",count);
     return 0;
 }

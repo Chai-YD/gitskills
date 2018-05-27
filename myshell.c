@@ -1,51 +1,48 @@
-#include <stdio.h>
-#include <string.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <sys/wait.h>
-#include <ctype.h>
-
-int argc  = 0;
-char* argv[8] = {}; 
-
-void do_parse(char* buf){ // 字符串解析
-    argc = 0;
-    int i = 0;
-    int status = 0;
-    for(; buf[i]!=0; i++){
-        if(!isspace(buf[i])&&status == 0){ //如果是字符并且是从空格到字符
-            argv[argc++] = buf + i;
-            status = 1;
-        }else if(isspace(buf[i])){ // 如果是字符到空格
-            buf[i] = 0;
-            status = 0;
-        }   
-    }   
-}
-void do_shell(){
-    pid_t pid = fork(); // 创建子进程
-    if(pid == -1){
-        perror("fork");
+#include<stdio.h>
+#include<stdlib.h>
+//希尔函数
+void myshell(int array[],int64_t size){
+    if(size<=1){
+        //无需进行排序
         return;
     }
-    else if(pid > 0)
-       wait(NULL);  // 父进程等待子进程结束
-    else{ // 子进程进行进程替换
-        if(execvp(argv[0],argv) == -1)
-            perror("execvp"),exit(1);
-    }
+    //数组元素个数大于1
+    //此时使用希尔排序
+    int64_t gap = size/2;
+    for(;gap > 0;gap/=2){
+        //此处相当与插入排序中的bound = 1
+        int64_t bound = gap;
+        for(;bound<size;++bound){
+            int bound_value = array[bound];
+            int64_t cur =bound;
+            for(;cur>0;cur-=gap){
+                if(array[cur-gap]>bound_value){
+                    array[cur] = array[cur-gap];
+                }else{
+                    break;
+                }
+            }//第三层循环结束
+            array[cur] = bound_value;
+        }//第二层循环结束
+    }//第一层循环结束
 }
 
+//主函数
 int main(){
-    char buf[1024] = {};
-    while(1){
-        memset(buf, 0x00, sizeof(buf));
-        printf("shell >");
-        scanf("%[^\n]", buf);  // 命令行读取
-        scanf("%*c");
-        if(strcmp(buf, "exit") == 0)
-            break;
-        do_parse(buf);
-        do_shell();
+    int arr[] = {1,6,3};
+    int size = sizeof(arr)/sizeof(arr[0]);
+    printf("排序前：");
+    int i = 0;
+    for(;i<size;++i){
+        printf("%d ",arr[i]);
     }
+    printf("\n");
+    myshell(arr,size);
+    printf("排序后：");
+    i = 0;
+    for(;i<size;++i){
+        printf("%d ",arr[i]);
+    }
+    printf("\n");
+    return 0;
 }

@@ -8,7 +8,12 @@
 #include<unistd.h>
 #include<netinet/in.h>
 #include<arpa/inet.h>
+#include<ctype.h>
+#include<strings.h>
+#include<sys/stat.h>
 #define MAX 1024
+#define HOME_PATH "index.html"
+int cgi = 0;
 //函数实现
 void usage(const char* proc){
     printf("[%s][port]\n",proc);
@@ -41,7 +46,7 @@ int startup(int port){
 }
 
 //get_line函数的实现（按行读取函数的实现）
-void get_line(int sock,char line[],int size){
+int get_line(int sock,char line[],int size){
     //行分割符（\n,\r,\r\n）都应该考虑在内,均视为\n处理
     int c = 'a';
     ssize_t s = 0;
@@ -62,21 +67,100 @@ void get_line(int sock,char line[],int size){
             }
             line[i++] = c;
         }else{
-            return;
+            return -1;
             break;
         }
     }
     line[i] = '\0';
-    return;
+    return i;
 }
+
+//exe_cgi函数实现
+void exe_cgi(int sock,char path[],char method[],char* query_string){
+    ;
+}
+//echo_www函数实现
+void echo_www(int sock,char* path,int size,int* err){
+    ;
+}
+
 //hander_request函数的实现
 void* hander_request(void* arg){
     int sock = (int)arg;
     char line[MAX];
+    int errcode = 200;
+    char method[MAX/32];
+    char url[MAX];
+    char* query_string = NULL;
+    char* path;
+#ifdef DEBUG
     do{
         get_line(sock,line,sizeof(line));//按行读取
         printf("%s",line);//将读取行打印出来
     }while(strcmp(line,"\n")!=0);
+#else
+    if(get_line(sock,line,sizeof(line))<0){
+        errcode = 404;
+        goto end;
+    }
+    //get method(获取方法)
+    int i = 0;
+    int  j = 0;
+    while(i < sizeof(method)-1 && j < sizeof(line) \
+            && !isspace(line[j])){
+        method[i] = line[j];
+        i++;
+        j++;
+    }
+    method[i] = '\0';
+    while(j<sizeof(line)&&isspace(line[j])){
+        j++;
+    }
+    //获取请求资源路径
+    i = 0;
+    while(i<sizeof(url)-1 && j<sizeof(line) && !isspace(line[j])){
+        url[i] = line[j];
+        i++;
+        j++;
+    }
+    url[i] = '\0';
+    if(strcasecmp(method,"GET")==0){
+        query_string = url;
+        while(*query_string){
+            if(*query_string == '?'){
+                *query_string = '\0';
+                query_string++;
+                cgi = 1;
+                break;
+            }
+            query_string++;
+        }
+    }
+    sprintf(path,"wwwroot",url);
+    if(path[strlen(path)-1]=='/'){
+        strcat(path,HOME_PATH);
+    }
+    struct stat st;
+    if(stat(path,&st)<0){
+        errcode = 404;
+        goto end;
+    }else{
+        if(S_ISDIR(st.st_mode)){
+            strcat(path,HOME_PATH);
+        }else{
+            if((st.st_mode&S_IXUSR) || (st.st_mode&S_IXGRP) \
+                    ||(st.st_mode&S_IXOTH)){
+                cgi = 1;
+            }
+        }
+        if(cgi){
+            exe_cgi(sock,path,method,query_string);
+        }else{
+            echo_www(sock,path,st.st_size,&errcode);
+        }
+    }
+#endif
+end:
     close(sock);
 }
 

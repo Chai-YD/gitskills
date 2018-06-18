@@ -149,28 +149,63 @@
 //函数rename的使用
 //**************************************
 
-#include<stdio.h>
-#include<string.h>
-#include<errno.h>
+//#include<stdio.h>
+//#include<string.h>
+//#include<errno.h>
+//
+////主函数i
+//int main(){
+//    char path[] = "/home/chaiyandong/BAT/LINUX/基础IO/txt1.txt";
+//    char newpath[] = "/home/chaiyandong/BAT/LINUX/基础IO/chai.txt";
+//    extern int errno;
+//    if(rename(path,newpath) == 0){
+//        printf("the file %s was moved to %s.\n",path,newpath);
+//    }else{
+//        printf("cann't move the file %s\n",path);
+//        printf("errno:%d\n",errno);
+//        printf("ERR:%s\n",strerror(errno));
+//    }
+//    return 0;
+//}
 
-//主函数i
+
+//**************************************
+//函数rename的使用
+//**************************************
+#include<stdio.h>
+#include<sys/types.h>
+#include<sys/stat.h>
+#include<fcntl.h>
+#include<unistd.h>
+
+//主函数
 int main(){
-    char path[] = "/home/chaiyandong/BAT/LINUX/基础IO/txt1.txt";
-    char newpath[] = "/home/chaiyandong/BAT/LINUX/基础IO/chai.txt";
+    int fd,fd2,size,i = 1;
+    char path[] = "/home/chaiyandong/BAT/LINUX/基础IO/txt3.txt";
+    char newpath[] = "/home/chaiyandong/BAT/LINUX/基础IO/yan.txt";
+    char buf[100];
     extern int errno;
-    if(rename(path,newpath) == 0){
-        printf("the file %s was moved to %s.\n",path,newpath);
+    fd = open(path,O_RDONLY);
+    fd2 = open(newpath,O_WRONLY|O_CREAT);
+    if(fd != -1){
+        printf("opened file %s \n",path);
     }else{
-        printf("cann't move the file %s\n",path);
-        printf("errno:%d\n",errno);
-        printf("ERR:%s\n",strerror(errno));
+        printf("cann't open file %s \n",path);
     }
+    for(;i!=0;){
+        i = read(fd,buf,sizeof(buf));
+        if(i == -1){
+            break;
+        }else{
+            write(fd2,buf,sizeof(buf));
+            i = 0;
+        }
+    }
+    close(fd);
+    close(fd2);
+    printf("file was copies!\n");
     return 0;
 }
-
-
-
-
 
 
 

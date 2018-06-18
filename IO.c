@@ -145,8 +145,28 @@
 //}
 
 
+//**************************************
+//函数rename的使用
+//**************************************
 
+#include<stdio.h>
+#include<string.h>
+#include<errno.h>
 
+//主函数i
+int main(){
+    char path[] = "/home/chaiyandong/BAT/LINUX/基础IO/txt1.txt";
+    char newpath[] = "/home/chaiyandong/BAT/LINUX/基础IO/chai.txt";
+    extern int errno;
+    if(rename(path,newpath) == 0){
+        printf("the file %s was moved to %s.\n",path,newpath);
+    }else{
+        printf("cann't move the file %s\n",path);
+        printf("errno:%d\n",errno);
+        printf("ERR:%s\n",strerror(errno));
+    }
+    return 0;
+}
 
 
 

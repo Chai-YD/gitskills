@@ -4,9 +4,11 @@
 #include<signal.h>
 #include<stdlib.h>
 #include<sys/time.h>
+#include<string.h>
+#include<time.h>
 
-
-#define FC 5     //前景颜色
+int FC = 5;
+//#define FC 5     //前景颜色
 //0黑
 #define BC 7   //背景颜色
 #define W 10   //地图的宽度
@@ -16,6 +18,7 @@ struct data{
     int x; //列
     int y; //行
 };
+int cur = 0;
 struct data t = {5,0};//图形的位置
 
 /*数组表示（0；1）
@@ -60,7 +63,7 @@ struct data t = {5,0};//图形的位置
 
 #endif
 
-//int background[H][W];
+int background[H][W] = {};//保存背景的数组
 
 struct shape{
     int s[5][5];
@@ -152,8 +155,23 @@ void drow_back(){
     for(i = 0;i<H;i++){
         int j;
         for(j = 0;j<W;j++){
-            drow_element(j,i,BC);
+            if(background[i][j] == 0)
+                drow_element(j,i,BC);
+            else
+                drow_element(j,i,background[i][j]);
         }
+    }
+}
+
+void set_back(struct data* t,struct shape p){
+    int i;
+    for(i = 0;i<5;i++){
+         int j;
+         for(j= 0;j<5;j++){
+             if(p.s[i][j] != 0){
+                 background[t->y+i][t->x+j] = FC;
+             }
+         }
     }
 }
 
@@ -168,10 +186,13 @@ int can_move(int x,int y,struct shape p){
             if(x+j>=W){
                 return 0;
             }
-            if(y+i>H){
+            if(y+i>=H-1){
                 return 0;
             }
-            if(x+j<=0){
+            if(x+j<0){
+                return 0;
+            }
+            if(background[y+i+1][x+j] != 0){
                 return 0;
             }
         }
@@ -179,17 +200,47 @@ int can_move(int x,int y,struct shape p){
     return 1;
 }
 
-//下落
-void tetris_timer(struct data* t){
-    drow_shape(t->x,t->y,shape_arr[0],BC);
-    if(can_move(t->x,t->y,shape_arr[0])){
-        t->y++;
-    }else{
-        t->y = 0;
+//消行
+void mclean_line(void){
+    int i;
+    for(i = 0;i<H;i++){
+        int total = 0;
+        int j;
+        for(j = 0;j<W;j++){
+            if(background[i][j] != 0){
+                total++;
+            }
+        }
+        if(total == W){
+            int k;
+            for(k =i;k>0;k--){
+                memcpy(background[k],background[k-1],sizeof(background[k]));
+            }
+            memset(background[0],0x00,sizeof(background[0]));
+        }
     }
-    drow_shape(t->x,t->y,shape_arr[0],FC);
 }
 
+//下落
+void tetris_timer(struct data* t){
+    drow_shape(t->x,t->y,shape_arr[cur],BC);
+    if(can_move(t->x,t->y,shape_arr[cur])){
+        t->y++;
+    }else{
+        set_back(t,shape_arr[cur]);
+        mclean_line();
+        drow_back();
+        do{
+            FC = rand()%7;
+        }while(FC == BC);
+        t->y = 0;
+        t->x = 0;
+        cur = rand()%7;
+    }
+    drow_shape(t->x,t->y,shape_arr[cur],FC);
+}
+
+//旋转
 struct shape turn_90(struct shape p){
     struct shape t;
     int i;
@@ -206,32 +257,48 @@ int tetris(struct data* t){
     int ret = 0;
     int c = get_key();
     if(is_left(c)){
-        drow_shape(t->x,t->y,shape_arr[0],BC);
-        t->x--;
-        drow_shape(t->x,t->y,shape_arr[0],FC);
+        drow_shape(t->x,t->y,shape_arr[cur],BC);
+        if(can_move(t->x-1,t->y,shape_arr[cur]))
+            t->x--;
+        drow_shape(t->x,t->y,shape_arr[cur],FC);
     }else if(is_right(c)){
-        drow_shape(t->x,t->y,shape_arr[0],BC);
-        t->x++;
-        drow_shape(t->x,t->y,shape_arr[0],FC);
+        drow_shape(t->x,t->y,shape_arr[cur],BC);
+        if(can_move(t->x+1,t->y,shape_arr[cur]))
+            t->x++;
+        drow_shape(t->x,t->y,shape_arr[cur],FC);
     }else if(is_esc(c)){
         ret = 1;
     }else if(is_down(c)){
-        drow_shape(t->x,t->y,shape_arr[0],BC);
-        t->y++;
-        drow_shape(t->x,t->y,shape_arr[0],FC);
+        drow_shape(t->x,t->y,shape_arr[cur],BC);
+        if(can_move(t->x,t->y+1,shape_arr[cur]))
+            t->y++;
+        drow_shape(t->x,t->y,shape_arr[cur],FC);
     }else if(is_up(c)){
-        drow_shape(t->x,t->y,shape_arr[0],BC);
-        shape_arr[0] = turn_90(shape_arr[0]);
-        drow_shape(t->x,t->y,shape_arr[0],FC);
+        drow_shape(t->x,t->y,shape_arr[cur],BC);
+        shape_arr[cur] = turn_90(shape_arr[cur]);
+        if(can_move(t->x,t->y,shape_arr[cur])==0){
+            shape_arr[cur] = turn_90(shape_arr[cur]);
+            shape_arr[cur] = turn_90(shape_arr[cur]);
+            shape_arr[cur] = turn_90(shape_arr[cur]);
+        }
+        drow_shape(t->x,t->y,shape_arr[cur],FC);
     }
     return ret;
 }
 
 void handler(int s){
-    tetris_timer(&t);
+    if(s == SIGALRM)
+        tetris_timer(&t);
+    else if(s == SIGINT){
+        printf("\033[0m");
+        printf("\033[?25h");
+        recover_keyboard();
+        exit(0);
+    }
 }
 
 int main(){
+    srand((unsigned int)time(NULL));
     init_keyboard();
     int i;
     drow_back();
@@ -261,9 +328,9 @@ int main(){
     //    drow_element(i,10,FC);//平移
     //    sleep(1);
     //    drow_element(10,i,BC);*/
-    //    drow_shape(5,i,shape_arr[0],FC);
+    //    drow_shape(5,i,shape_arr[cur],FC);
     //    sleep(1);
-    //    drow_shape(5,i,shape_arr[0],BC);
+    //    drow_shape(5,i,shape_arr[cur],BC);
     //}
     printf("\033[?25h");
     recover_keyboard();
